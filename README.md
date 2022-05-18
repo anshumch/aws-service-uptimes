@@ -13,6 +13,7 @@ https://github.com/anshumch/aws-service-uptimes.git
 sam deploy --guided
 ````
 - Pass the following values:
+
 ![image](https://user-images.githubusercontent.com/100800132/168960174-2d1ef7ad-e013-4293-b8df-878f1555cf7c.png)
 
 - To run it:
