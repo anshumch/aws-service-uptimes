@@ -18,7 +18,7 @@ sam deploy --guided
 
 - Once the stack is deployed, you will receive an output with stack successful creation message. Note the API output value. We will call this API endpoint to execute the lambda to fetch service wide uptimes.
 
-![image](https://user-images.githubusercontent.com/100800132/169315436-ee92b0e7-9767-4187-b95b-11c54a69acc6.png)
+![image](https://user-images.githubusercontent.com/100800132/169389109-c3d95385-874c-4ff3-b529-4f473664a1b7.png)
 
 - To run it:
  
