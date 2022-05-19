@@ -1,6 +1,6 @@
 # aws-service-uptimes
 
-## The tool enables an user to track an AWS service uptime in terms of % wrt. to Public LSE for a time period
+## The tool enables an user to track an AWS service uptime in terms of % wrt. to Public Service Events for a specified time period
 
 Steps to deploy:
 
