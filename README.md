@@ -22,6 +22,6 @@ sam deploy --guided
 
 - To run it:
  
-![image](https://user-images.githubusercontent.com/100800132/169219355-3b124b4b-47d0-4303-bcec-23137f617780.png)
+![image](https://user-images.githubusercontent.com/100800132/169389432-d5e3ad8c-605a-4835-9a78-57750f2bd55d.png)
 
 
