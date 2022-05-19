@@ -46,6 +46,7 @@ Resources:
             Statement:
               - Action:
                   - health:DescribeEvents
+                  - health:DescribeEventTypes
                 Effect: Allow
                 Resource: "*"
           PolicyName: lambdaHealth
