@@ -66,8 +66,10 @@ def lambda_handler(event, context):
         regionServicesUptimeList.append(regionServicesUptime)
         
         responseServicesUptime = {}
+        responseServicesUptime["input"] = eventInput
         responseServicesUptime["regionWiseServicesUptime"] = regionServicesUptimeList
         responseServicesUptime["regionEventServicesList"] = regionEventServicesList
+        responseServicesUptime["disclaimer"] = "This does not reflect any SLA commitments as SLA for each service incorporates factors other than Service Uptimes. This result is just an illustration for the Service Uptime vis-a-vis the time period and the AWS regions specified in the input"
         
     for regionEventService in regionEventServicesList:
         regionEventService["eventPeriod"] = str(regionEventService["eventPeriod"]) + " sec"
