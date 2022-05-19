@@ -3,36 +3,43 @@ import boto3
 from datetime import date,datetime
 
 clientShd = boto3.client('health')
+
 def lambda_handler(event, context):
-    # print(event)
-    eventInput = json.loads(event.get("body"))
+    regionServicesUptimeList = []
     
+    print(event)
+    
+    eventInput = json.loads(event.get("body"))
+    # eventInput = event
+    
+    regions = eventInput.get("regions")
     eventDateFrom = eventInput.get("eventDateFrom")
     eventDateTo = eventInput.get("eventDateTo")
+    
     
     # print(eventDateFrom)
     # print(eventDateTo)
     
-    eventServicesList = []
+    regionEventServicesList = []
     
     responseEvents = getShdEvents(eventDateFrom, eventDateTo)
     events = responseEvents.get("events")
-    print(events)
+    # print(events)
     
-    for event in events:
+    for eventItem in events:
         eventPeriod = None
         
         # print(datetime.now())
         # print(datetime.now().replace(tzinfo=None))
         
-        service = event.get("service")
-        region = event.get("region")
+        service = eventItem.get("service")
+        region = eventItem.get("region")
         
         # event["endTime"] = None
-        if(event.get("endTime") != None and event.get("startTime") != None):
-            eventPeriod = (event.get("endTime").replace(tzinfo=None) - event.get("startTime").replace(tzinfo=None))
-        elif(event.get("startTime") != None):
-            eventPeriod = datetime.now().replace(tzinfo=None) - event.get("startTime").replace(tzinfo=None)
+        if(eventItem.get("endTime") != None and eventItem.get("startTime") != None):
+            eventPeriod = (eventItem.get("endTime").replace(tzinfo=None) - eventItem.get("startTime").replace(tzinfo=None))
+        elif(eventItem.get("startTime") != None):
+            eventPeriod = datetime.now().replace(tzinfo=None) - eventItem.get("startTime").replace(tzinfo=None)
         
         if(eventPeriod != None):
             eventPeriodSec = eventPeriod.total_seconds()
@@ -40,29 +47,35 @@ def lambda_handler(event, context):
         eventDateFromDt=datetime.strptime(eventDateFrom, "%m-%d-%Y")
         eventDateToDt=datetime.strptime(eventDateTo, "%m-%d-%Y")
         
-        serviceRegion = {}
-        serviceRegion["region"] = region
-        serviceRegion["service"] = service
-        serviceRegion["eventPeriod"] = eventPeriodSec
-        serviceRegion["upTime"] = calculateUptime(eventDateFromDt, eventDateToDt, eventPeriodSec)
+        if(region in regions):
+            regionEventService = {}
+            regionEventService["region"] = region
+            regionEventService["service"] = service
+            regionEventService["startTime"] = eventItem.get("startTime")
+            regionEventService["endTime"] = eventItem.get("endTime")
+            regionEventService["eventPeriod"] = eventPeriodSec
+            regionEventServicesList.append(regionEventService)
         
-        # print(serviceRegion)
-        if not any((item.get("region") == region and item.get("service") == service) for item in eventServicesList):
-           eventServicesList.append(serviceRegion)
-        else:
-            serviceRegionExists = next((item for item in eventServicesList if (item.get("region") == region and item.get("service") == service)), None)
-            serviceRegionExists["eventPeriod"] = serviceRegionExists["eventPeriod"] + eventPeriodSec
-            serviceRegionExists["upTime"] = calculateUptime(eventDateFromDt, eventDateToDt, serviceRegionExists["eventPeriod"])
+    for regionItem in regions:
+        servicesUptime = findServices(regionItem)  
+        servicesUptime = fillServicesUptime(regionItem, servicesUptime, regionEventServicesList, eventDateFromDt, eventDateToDt)
         
-    for serviceRegion in eventServicesList:
-        serviceRegion["eventPeriod"] = str(serviceRegion["eventPeriod"]) + " sec"
-        serviceRegion["upTime"] = str(serviceRegion["upTime"]) + "%"
+        regionServicesUptime = {}
+        regionServicesUptime["region"] = regionItem
+        regionServicesUptime["services"] = servicesUptime
+        regionServicesUptimeList.append(regionServicesUptime)
         
-            
+        responseServicesUptime = {}
+        responseServicesUptime["regionWiseServicesUptime"] = regionServicesUptimeList
+        responseServicesUptime["regionEventServicesList"] = regionEventServicesList
+        
+    for regionEventService in regionEventServicesList:
+        regionEventService["eventPeriod"] = str(regionEventService["eventPeriod"]) + " sec"
+        
     # TODO implement
     return {
         'statusCode': 200,
-        'body': json.dumps(eventServicesList, default=str)
+        'body': json.dumps(responseServicesUptime, default=str)
     }
 
 def getShdEvents(eventDateFrom, eventDateTo):
@@ -88,4 +101,78 @@ def calculateUptime(eventDateFromDt, eventDateToDt, eventPeriodSec):
     
     return (1 - (eventPeriodSec/totalPeriodSec)) * 100
         
+def findServices(regionItem):
+    services = []
+    eventTypeCodes = []
+    
+    nextTokenAvailable = True
+    nextToken = None
+    
+    while nextTokenAvailable == True:
+        if(nextToken):
+            responseEventTypeCodes = clientShd.describe_event_types(
+                    filter={
+                        'eventTypeCategories': [
+                            'issue',
+                        ]
+                    },
+                    maxResults=100,
+                    nextToken=nextToken
+                )
+            eventTypeCodes.append(responseEventTypeCodes.get("eventTypes"))
+        else:
+            responseEventTypeCodes = clientShd.describe_event_types(
+                    filter={
+                        'eventTypeCategories': [
+                            'issue',
+                        ]
+                    },
+                    maxResults=100
+                )
+            eventTypeCodes.append(responseEventTypeCodes.get("eventTypes"))
         
+        nextToken = responseEventTypeCodes.get("nextToken")
+        
+        if(nextToken != None):
+            nextTokenAvailable = True
+        else:
+            nextTokenAvailable = False
+    
+    # print(len(eventTypeCodes))
+    eventTypeCodesFlatList = [item for eventTypeCodesList in eventTypeCodes for item in eventTypeCodesList]
+    # print(len(eventTypeCodesFlatList))
+    
+    services = list(set(list(map(lambda x: x.get('service'), eventTypeCodesFlatList))))
+    services = sorted(services)
+    # print(services)
+    # for eventTypeCode in eventTypeCodes:
+        # print(eventTypeCode)
+        # services.append(eventTypeCode.get("service"))
+    
+    servicesUptime = []
+    for service in services:
+        serviceUptime = {}
+        serviceUptime["service"] = service
+        serviceUptime["uptime"] = None
+        servicesUptime.append(serviceUptime)
+        
+    return servicesUptime
+    
+def fillServicesUptime(region, servicesUptime, regionEventServicesList, eventDateFromDt, eventDateToDt):
+    # print("region:" + region)
+    for service in servicesUptime:
+        totalDownTimeSec = 0
+        
+        for regionEventService in regionEventServicesList:
+            if(regionEventService.get("region") == region 
+                and regionEventService.get("service") == service.get("service")):
+                    totalDownTimeSec = totalDownTimeSec + regionEventService.get("eventPeriod")
+        
+        if(totalDownTimeSec > 0):
+            service["uptime"] = calculateUptime(eventDateFromDt, eventDateToDt, totalDownTimeSec)    
+        else: 
+            service["uptime"] = 100
+   
+        service["uptime"] = str(service["uptime"]) + "%"
+        
+    return servicesUptime
