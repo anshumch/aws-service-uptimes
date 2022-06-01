@@ -9,19 +9,12 @@ def lambda_handler(event, context):
     
     print(event)
     
-    # eventInput = json.loads(event.get("body"))
-    eventInput = event
+    eventInput = json.loads(event.get("body"))
+    # eventInput = event
     
-    
-    if(eventInput.get("eventDateFrom") and eventInput.get("eventDateTo") and eventInput.get("regions")):
-        eventDateFrom = eventInput.get("eventDateFrom")
-        eventDateTo = eventInput.get("eventDateTo")
-        regions = eventInput.get("regions")
-    elif(eventInput.get("body")):
-        eventInputBody = json.loads(eventInput.get("body"))
-        eventDateFrom = eventInputBody.get("eventDateFrom")
-        eventDateTo = eventInputBody.get("eventDateTo")
-        regions = eventInputBody.get("regions")
+    regions = eventInput.get("regions")
+    eventDateFrom = eventInput.get("eventDateFrom")
+    eventDateTo = eventInput.get("eventDateTo")
     
     
     # print(eventDateFrom)
@@ -34,7 +27,6 @@ def lambda_handler(event, context):
     # print(events)
     
     for eventItem in events:
-        print(eventItem)
         eventPeriod = None
         
         # print(datetime.now())
@@ -74,8 +66,10 @@ def lambda_handler(event, context):
         regionServicesUptimeList.append(regionServicesUptime)
         
         responseServicesUptime = {}
+        responseServicesUptime["input"] = eventInput
         responseServicesUptime["regionWiseServicesUptime"] = regionServicesUptimeList
         responseServicesUptime["regionEventServicesList"] = regionEventServicesList
+        responseServicesUptime["disclaimer"] = "This does not reflect any SLA commitments as SLA for each service incorporates factors other than just the Service Uptimes. This result is just an illustration for the Service Uptime vis-a-vis the time period and the AWS regions specified in the input"
         
     for regionEventService in regionEventServicesList:
         regionEventService["eventPeriod"] = str(regionEventService["eventPeriod"]) + " sec"
