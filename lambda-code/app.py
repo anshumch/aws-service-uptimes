@@ -16,7 +16,10 @@ def lambda_handler(event, context):
     eventDateFrom = eventInput.get("eventDateFrom")
     eventDateTo = eventInput.get("eventDateTo")
     
-    
+    eventDateFromDt=datetime.strptime(eventDateFrom, "%m-%d-%Y")
+    eventDateToDt=datetime.strptime(eventDateTo, "%m-%d-%Y")
+        
+        
     # print(eventDateFrom)
     # print(eventDateTo)
     
@@ -43,9 +46,6 @@ def lambda_handler(event, context):
         
         if(eventPeriod != None):
             eventPeriodSec = eventPeriod.total_seconds()
-        
-        eventDateFromDt=datetime.strptime(eventDateFrom, "%m-%d-%Y")
-        eventDateToDt=datetime.strptime(eventDateTo, "%m-%d-%Y")
         
         if(region in regions):
             regionEventService = {}
