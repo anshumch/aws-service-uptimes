@@ -9,27 +9,33 @@ def lambda_handler(event, context):
     
     print(event)
     
-    eventInput = json.loads(event.get("body"))
-    # eventInput = event
+    # eventInput = json.loads(event.get("body"))
+    eventInput = event
     
-    regions = eventInput.get("regions")
-    eventDateFrom = eventInput.get("eventDateFrom")
-    eventDateTo = eventInput.get("eventDateTo")
     
-    eventDateFromDt=datetime.strptime(eventDateFrom, "%m-%d-%Y")
-    eventDateToDt=datetime.strptime(eventDateTo, "%m-%d-%Y")
-        
-        
+    if(eventInput.get("eventDateFrom") and eventInput.get("eventDateTo") and eventInput.get("regions")):
+        eventDateFrom = eventInput.get("eventDateFrom")
+        eventDateTo = eventInput.get("eventDateTo")
+        regions = eventInput.get("regions")
+    elif(eventInput.get("body")):
+        eventInputBody = json.loads(eventInput.get("body"))
+        eventDateFrom = eventInputBody.get("eventDateFrom")
+        eventDateTo = eventInputBody.get("eventDateTo")
+        regions = eventInputBody.get("regions")
+    
+    
     # print(eventDateFrom)
     # print(eventDateTo)
     
     regionEventServicesList = []
     
     responseEvents = getShdEvents(eventDateFrom, eventDateTo)
+    print(responseEvents)
     events = responseEvents.get("events")
-    # print(events)
+    
     
     for eventItem in events:
+        print(eventItem)
         eventPeriod = None
         
         # print(datetime.now())
@@ -47,7 +53,11 @@ def lambda_handler(event, context):
         if(eventPeriod != None):
             eventPeriodSec = eventPeriod.total_seconds()
         
-        if(region in regions):
+        eventDateFromDt=datetime.strptime(eventDateFrom, "%m-%d-%Y")
+        eventDateToDt=datetime.strptime(eventDateTo, "%m-%d-%Y")
+        
+        if(region in regions
+            or region == "global"):
             regionEventService = {}
             regionEventService["region"] = region
             regionEventService["service"] = service
@@ -57,7 +67,8 @@ def lambda_handler(event, context):
             regionEventServicesList.append(regionEventService)
         
     for regionItem in regions:
-        servicesUptime = findServices(regionItem)  
+        servicesUptime = findServices()
+    
         servicesUptime = fillServicesUptime(regionItem, servicesUptime, regionEventServicesList, eventDateFromDt, eventDateToDt)
         
         regionServicesUptime = {}
@@ -66,10 +77,8 @@ def lambda_handler(event, context):
         regionServicesUptimeList.append(regionServicesUptime)
         
         responseServicesUptime = {}
-        responseServicesUptime["input"] = eventInput
         responseServicesUptime["regionWiseServicesUptime"] = regionServicesUptimeList
         responseServicesUptime["regionEventServicesList"] = regionEventServicesList
-        responseServicesUptime["disclaimer"] = "This does not reflect any SLA commitments as SLA for each service incorporates factors other than just the Service Uptimes. This result is just an illustration for the Service Uptime vis-a-vis the time period and the AWS regions specified in the input"
         
     for regionEventService in regionEventServicesList:
         regionEventService["eventPeriod"] = str(regionEventService["eventPeriod"]) + " sec"
@@ -103,7 +112,7 @@ def calculateUptime(eventDateFromDt, eventDateToDt, eventPeriodSec):
     
     return (1 - (eventPeriodSec/totalPeriodSec)) * 100
         
-def findServices(regionItem):
+def findServices():
     services = []
     eventTypeCodes = []
     
@@ -168,7 +177,8 @@ def fillServicesUptime(region, servicesUptime, regionEventServicesList, eventDat
         totalDownTimeSec = 0
         
         for regionEventService in regionEventServicesList:
-            if(regionEventService.get("region") == region 
+            if((regionEventService.get("region") == region 
+                or regionEventService.get("region") == "global")
                 and regionEventService.get("service") == service.get("service")):
                     totalDownTimeSec = totalDownTimeSec + regionEventService.get("eventPeriod")
                     events.append(regionEventService)
