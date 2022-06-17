@@ -1,0 +1,92 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'aws-service-uptime
+
+  Update DataSync Tasks Agents
+
+  '
+Globals:
+  Function:
+    Timeout: 3
+Parameters:
+  Stage:
+    Type: String
+    AllowedValues:
+    - dev
+    - test
+    - prod
+Resources:
+  lambdaIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+      Policies:
+      - PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Effect: Allow
+            Resource: '*'
+        PolicyName: lambda1Logging
+      - PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Action:
+            - health:DescribeEvents
+            - health:DescribeEventTypes
+            Effect: Allow
+            Resource: '*'
+        PolicyName: lambdaHealth
+  ApiDeployment:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName:
+        Ref: Stage
+  awsServiceUptimeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: awsServiceUptimeFunction
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Role:
+        Fn::GetAtt:
+        - lambdaIAMRole
+        - Arn
+      Events:
+        AwsServiceAPIEvent:
+          Type: Api
+          Properties:
+            Path: /aws-service-uptime
+            Method: post
+            RestApiId:
+              Ref: ApiDeployment
+    Metadata:
+      SamResourceId: awsServiceUptimeFunction
+Outputs:
+  awsServiceUptimeFunctionApi:
+    Description: API Gateway endpoint URL for Prod stage for eventTypeCodesType function
+    Value:
+      Fn::Sub: https://${ApiDeployment}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/aws-service-uptime/
+  awsServiceUptimeFunction:
+    Description: awsServiceUptimeFunction Function ARN
+    Value:
+      Fn::GetAtt:
+      - awsServiceUptimeFunction
+      - Arn
+  awsServiceUptimeFunctionIamRole:
+    Description: Implicit IAM Role created for eventTypeCodesType Function
+    Value:
+      Fn::GetAtt:
+      - lambdaIAMRole
+      - Arn
