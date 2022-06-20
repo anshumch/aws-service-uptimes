@@ -51,9 +51,6 @@ def lambda_handler(event, context):
 
     regionsToSearch.append("global")
     
-    # print(eventDateFrom)
-    # print(eventDateTo)
-    
     regionEventServicesList = []
     
     events = getShdEvents(eventDateFrom, eventDateTo, regionsToSearch)

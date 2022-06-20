@@ -10,7 +10,7 @@ https://github.com/anshumch/aws-service-uptimes.git
 ````
 - Run the following command (pre-requisite - you need to download and install [SAM CLI)](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html):
 ````bash
-sam deploy --guided
+sam build && sam deploy --guided
 ````
 - Pass the following values:
 
