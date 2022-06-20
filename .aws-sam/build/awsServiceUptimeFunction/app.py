@@ -20,6 +20,7 @@
 # ########################################################################
 
 import json
+from sre_constants import MAXREPEAT
 import boto3
 from datetime import date,datetime
 
@@ -135,7 +136,8 @@ def getShdEvents(eventDateFrom, eventDateTo):
                         },
                     ]
                 },
-                nextToken=nextToken
+                nextToken=nextToken,
+                maxResults=100
             )
         else:
             responseEvents = clientShd.describe_events(
@@ -149,12 +151,16 @@ def getShdEvents(eventDateFrom, eventDateTo):
                             'to': eventDateTo
                         },
                     ]
-                }
+                },
+                maxResults=100
             )
 
         events = responseEvents.get("events")
+
+        for event in events:
+            if(event.get("eventScopeCode") == "PUBLIC"):
+                responseEventsList.append(event)
     
-        responseEventsList.append(events)
         nextToken = responseEvents.get("nextToken")
         
         if(nextToken != None):
@@ -162,10 +168,7 @@ def getShdEvents(eventDateFrom, eventDateTo):
         else:
             nextTokenAvailable = False
     
-    # print(len(responseEventsList))
-    responseEventsFlatList = [item for responseEvents in responseEventsList for item in responseEvents]
-    
-    return responseEventsFlatList
+    return responseEventsList
 
 def calculateUptime(eventDateFromDt, eventDateToDt, eventPeriodSec):
     totalPeriod = (eventDateToDt - eventDateFromDt)

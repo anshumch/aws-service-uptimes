@@ -20,6 +20,7 @@
 # ########################################################################
 
 import json
+from sre_constants import MAXREPEAT
 import boto3
 from datetime import date,datetime
 
@@ -135,7 +136,8 @@ def getShdEvents(eventDateFrom, eventDateTo):
                         },
                     ]
                 },
-                nextToken=nextToken
+                nextToken=nextToken,
+                maxResults=100
             )
         else:
             responseEvents = clientShd.describe_events(
@@ -149,7 +151,8 @@ def getShdEvents(eventDateFrom, eventDateTo):
                             'to': eventDateTo
                         },
                     ]
-                }
+                },
+                maxResults=100
             )
 
         events = responseEvents.get("events")
