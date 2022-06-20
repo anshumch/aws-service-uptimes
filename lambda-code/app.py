@@ -50,9 +50,8 @@ def lambda_handler(event, context):
     
     regionEventServicesList = []
     
-    responseEvents = getShdEvents(eventDateFrom, eventDateTo)
-    print(responseEvents)
-    events = responseEvents.get("events")
+    events = getShdEvents(eventDateFrom, eventDateTo)
+    print(events)
     
     
     for eventItem in events:
@@ -119,20 +118,54 @@ def lambda_handler(event, context):
     }
 
 def getShdEvents(eventDateFrom, eventDateTo):
-    responseEvents = clientShd.describe_events(
-            filter={
-                'eventTypeCategories': [
-                    'issue',
-                ],
-                'startTimes': [
-                    {
-                        'from': eventDateFrom,
-                        'to': eventDateTo
-                    },
-                ]
-            }
-        )
-    return responseEvents
+    responseEventsList = []
+    nextTokenAvailable = True
+    nextToken = None
+    while(nextTokenAvailable):
+        if(nextToken):
+            responseEvents = clientShd.describe_events(
+                filter={
+                    'eventTypeCategories': [
+                        'issue',
+                    ],
+                    'startTimes': [
+                        {
+                            'from': eventDateFrom,
+                            'to': eventDateTo
+                        },
+                    ]
+                },
+                nextToken=nextToken
+            )
+        else:
+            responseEvents = clientShd.describe_events(
+                filter={
+                    'eventTypeCategories': [
+                        'issue',
+                    ],
+                    'startTimes': [
+                        {
+                            'from': eventDateFrom,
+                            'to': eventDateTo
+                        },
+                    ]
+                }
+            )
+
+        events = responseEvents.get("events")
+    
+        responseEventsList.append(events)
+        nextToken = responseEvents.get("nextToken")
+        
+        if(nextToken != None):
+            nextTokenAvailable = True
+        else:
+            nextTokenAvailable = False
+    
+    # print(len(responseEventsList))
+    responseEventsFlatList = [item for responseEvents in responseEventsList for item in responseEvents]
+    
+    return responseEventsFlatList
 
 def calculateUptime(eventDateFromDt, eventDateToDt, eventPeriodSec):
     totalPeriod = (eventDateToDt - eventDateFromDt)
