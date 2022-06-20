@@ -45,13 +45,18 @@ def lambda_handler(event, context):
         eventDateTo = eventInputBody.get("eventDateTo")
         regions = eventInputBody.get("regions")
     
+    regionsToSearch = []
+    for region in regions:
+        regionsToSearch.append(region)
+
+    regionsToSearch.append("global")
     
     # print(eventDateFrom)
     # print(eventDateTo)
     
     regionEventServicesList = []
     
-    events = getShdEvents(eventDateFrom, eventDateTo)
+    events = getShdEvents(eventDateFrom, eventDateTo, regionsToSearch)
     print(events)
     
     
@@ -118,7 +123,7 @@ def lambda_handler(event, context):
         'body': json.dumps(responseServicesUptime, default=str)
     }
 
-def getShdEvents(eventDateFrom, eventDateTo):
+def getShdEvents(eventDateFrom, eventDateTo, regions):
     responseEventsList = []
     nextTokenAvailable = True
     nextToken = None
@@ -133,8 +138,9 @@ def getShdEvents(eventDateFrom, eventDateTo):
                         {
                             'from': eventDateFrom,
                             'to': eventDateTo
-                        },
-                    ]
+                        }
+                    ],
+                    'regions': regions
                 },
                 nextToken=nextToken,
                 maxResults=100
@@ -149,8 +155,9 @@ def getShdEvents(eventDateFrom, eventDateTo):
                         {
                             'from': eventDateFrom,
                             'to': eventDateTo
-                        },
-                    ]
+                        }
+                    ],
+                    'regions': regions
                 },
                 maxResults=100
             )
